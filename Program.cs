@@ -4,10 +4,11 @@
     {
         private static void Main(string[] args)
         {
-            /*string html = MetanitConverter.ConvertToHtml("https://metanit.com/java/tutorial/");
-            File.WriteAllBytes("java.pdf", PdfConverter.ConvertToPDF(html));*/
-            string html = MetanitConverter.ConvertToHtml("https://metanit.com/sharp/tutorial/");
-            File.WriteAllBytes("sharp.pdf", PdfConverter.ConvertToPDF(html));
+            Console.Write("Введите ссылку на страницу с оглавлением (Пример: https://metanit.com/sharp/tutorial/): ");
+            string url = Console.ReadLine()!;
+            string html = MetanitConverter.ConvertToHtml(url);
+            File.WriteAllBytes("output.pdf", PdfConverter.ConvertToPDF(html));
+            Console.Write("Файл output.pdf сохранен!");
         }
     }
 }
