@@ -75,38 +75,52 @@ namespace MetanitDownloader
             List<IElement> elements = new List<IElement>();
             foreach (string href in hrefs)
             {
-                IHtmlDocument page = ParseHtmlDownload(tutorial_url + href);
-                IElement pageContent = page.GetElementsByClassName("outercontainer").First();
-                foreach (IElement e in pageContent.GetElementsByTagName("div")
-                    .Where(v => v.ClassName == "socBlock" || v.ClassName == "item left" || v.ClassName == "item right" || v.ClassName == "nav" || v.ClassName == "commentABl" || (v.Id?.StartsWith("disqus_") ?? false))
-                ) e.Remove();
-                page.GetElementById("jma")?.Remove();
-                foreach (IElement e in pageContent.GetElementsByTagName("script")) e.Remove();
-                foreach (IElement e in pageContent.GetElementsByTagName("img"))
+                try
                 {
-                    string? src_image = e.GetAttribute("src");
-                    if (src_image == null)
-                        continue;
-                    if (src_image.StartsWith("./"))
+                    IHtmlDocument page = ParseHtmlDownload(tutorial_url + href);
+                    IElement pageContent = page.GetElementsByClassName("outercontainer").First();
+                    foreach (IElement e in pageContent.GetElementsByTagName("div")
+                        .Where(v => v.ClassName == "socBlock" || v.ClassName == "item left" || v.ClassName == "item right" || v.ClassName == "nav" || v.ClassName == "commentABl" || (v.Id?.StartsWith("disqus_") ?? false))
+                    ) e.Remove();
+                    page.GetElementById("jma")?.Remove();
+                    foreach (IElement e in pageContent.GetElementsByTagName("script")) e.Remove();
+                    foreach (IElement e in pageContent.GetElementsByTagName("img"))
                     {
-                        string img_path = src_image[2..];
-                        if (!images.ContainsKey(img_path))
+                        try
                         {
-                            string img_url = tutorial_url + img_path;
-                            images[img_path] = DownloadBytes(img_url);
-                        }
+                            string? src_image = e.GetAttribute("src");
+                            if (src_image == null)
+                                continue;
+                            if (src_image.StartsWith("./"))
+                            {
+                                string img_path = src_image[2..];
+                                if (!images.ContainsKey(img_path))
+                                {
+                                    string img_url = tutorial_url + img_path;
+                                    images[img_path] = DownloadBytes(img_url);
+                                }
 
-                        byte[] bytes = images[img_path];
-                        e.SetAttribute("src", $"data:image/{Path.GetExtension(img_path)[1..]};base64, {Convert.ToBase64String(bytes)}");
+                                byte[] bytes = images[img_path];
+                                e.SetAttribute("src", $"data:image/{Path.GetExtension(img_path)[1..]};base64, {Convert.ToBase64String(bytes)}");
+                            }
+                            else
+                            {
+                                string file_name = "other/" + Path.GetFileName(src_image);
+                                if (!images.ContainsKey(file_name)) images[file_name] = DownloadBytes(src_image);
+                                e.SetAttribute("src", $"data:image/{Path.GetExtension(file_name)[1..]};base64, {Convert.ToBase64String(images[file_name])}");
+                            }
+                        }
+                        catch (Exception _e)
+                        {
+                            Console.WriteLine(_e.ToString());
+                        }
                     }
-                    else
-                    {
-                        string file_name = "other/" + Path.GetFileName(src_image);
-                        if (!images.ContainsKey(file_name)) images[file_name] = DownloadBytes(src_image);
-                        e.SetAttribute("src", $"data:image/{Path.GetExtension(file_name)[1..]};base64, {Convert.ToBase64String(images[file_name])}");
-                    }
+                    elements.Add(pageContent);
                 }
-                elements.Add(pageContent);
+                catch (Exception _e)
+                {
+                    Console.WriteLine(_e.ToString());
+                }
             }
             return CreateHtmlByBlanks(elements)
                  .Replace(tutorial_url, "./")
